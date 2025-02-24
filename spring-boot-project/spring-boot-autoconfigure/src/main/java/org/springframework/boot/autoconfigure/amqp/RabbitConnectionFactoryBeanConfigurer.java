@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2023 the original author or authors.
+ * Copyright 2012-2025 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,8 +24,11 @@ import com.rabbitmq.client.impl.CredentialsRefreshService;
 import org.springframework.amqp.rabbit.connection.RabbitConnectionFactoryBean;
 import org.springframework.boot.autoconfigure.amqp.RabbitConnectionDetails.Address;
 import org.springframework.boot.context.properties.PropertyMapper;
+import org.springframework.boot.ssl.SslBundle;
+import org.springframework.boot.ssl.SslBundles;
 import org.springframework.core.io.ResourceLoader;
 import org.springframework.util.Assert;
+import org.springframework.util.unit.DataSize;
 
 /**
  * Configures {@link RabbitConnectionFactoryBean} with sensible defaults.
@@ -34,6 +37,7 @@ import org.springframework.util.Assert;
  * @author Moritz Halbritter
  * @author Andy Wilkinson
  * @author Phillip Webb
+ * @author Scott Frederick
  * @since 2.6.0
  */
 public class RabbitConnectionFactoryBeanConfigurer {
@@ -55,7 +59,7 @@ public class RabbitConnectionFactoryBeanConfigurer {
 	 * @param properties the properties
 	 */
 	public RabbitConnectionFactoryBeanConfigurer(ResourceLoader resourceLoader, RabbitProperties properties) {
-		this(resourceLoader, properties, new PropertiesRabbitConnectionDetails(properties));
+		this(resourceLoader, properties, new PropertiesRabbitConnectionDetails(properties, null));
 	}
 
 	/**
@@ -64,14 +68,29 @@ public class RabbitConnectionFactoryBeanConfigurer {
 	 * priority over the properties.
 	 * @param resourceLoader the resource loader
 	 * @param properties the properties
-	 * @param connectionDetails the connection details.
+	 * @param connectionDetails the connection details
 	 * @since 3.1.0
 	 */
 	public RabbitConnectionFactoryBeanConfigurer(ResourceLoader resourceLoader, RabbitProperties properties,
 			RabbitConnectionDetails connectionDetails) {
-		Assert.notNull(resourceLoader, "ResourceLoader must not be null");
-		Assert.notNull(properties, "Properties must not be null");
-		Assert.notNull(connectionDetails, "ConnectionDetails must not be null");
+		this(resourceLoader, properties, connectionDetails, null);
+	}
+
+	/**
+	 * Creates a new configurer that will use the given {@code resourceLoader},
+	 * {@code properties}, {@code connectionDetails}, and {@code sslBundles}. The
+	 * connection details have priority over the properties.
+	 * @param resourceLoader the resource loader
+	 * @param properties the properties
+	 * @param connectionDetails the connection details
+	 * @param sslBundles the SSL bundles
+	 * @since 3.2.0
+	 */
+	public RabbitConnectionFactoryBeanConfigurer(ResourceLoader resourceLoader, RabbitProperties properties,
+			RabbitConnectionDetails connectionDetails, SslBundles sslBundles) {
+		Assert.notNull(resourceLoader, "'resourceLoader' must not be null");
+		Assert.notNull(properties, "'properties' must not be null");
+		Assert.notNull(connectionDetails, "'connectionDetails' must not be null");
 		this.resourceLoader = resourceLoader;
 		this.rabbitProperties = properties;
 		this.connectionDetails = connectionDetails;
@@ -93,7 +112,7 @@ public class RabbitConnectionFactoryBeanConfigurer {
 	 * @param factory the {@link RabbitConnectionFactoryBean} instance to configure
 	 */
 	public void configure(RabbitConnectionFactoryBean factory) {
-		Assert.notNull(factory, "RabbitConnectionFactoryBean must not be null");
+		Assert.notNull(factory, "'factory' must not be null");
 		factory.setResourceLoader(this.resourceLoader);
 		Address address = this.connectionDetails.getFirstAddress();
 		PropertyMapper map = PropertyMapper.get();
@@ -107,21 +126,27 @@ public class RabbitConnectionFactoryBeanConfigurer {
 			.asInt(Duration::getSeconds)
 			.to(factory::setRequestedHeartbeat);
 		map.from(this.rabbitProperties::getRequestedChannelMax).to(factory::setRequestedChannelMax);
-		RabbitProperties.Ssl ssl = this.rabbitProperties.getSsl();
-		if (ssl.determineEnabled()) {
-			factory.setUseSSL(true);
-			map.from(ssl::getAlgorithm).whenNonNull().to(factory::setSslAlgorithm);
-			map.from(ssl::getKeyStoreType).to(factory::setKeyStoreType);
-			map.from(ssl::getKeyStore).to(factory::setKeyStore);
-			map.from(ssl::getKeyStorePassword).to(factory::setKeyStorePassphrase);
-			map.from(ssl::getKeyStoreAlgorithm).whenNonNull().to(factory::setKeyStoreAlgorithm);
-			map.from(ssl::getTrustStoreType).to(factory::setTrustStoreType);
-			map.from(ssl::getTrustStore).to(factory::setTrustStore);
-			map.from(ssl::getTrustStorePassword).to(factory::setTrustStorePassphrase);
-			map.from(ssl::getTrustStoreAlgorithm).whenNonNull().to(factory::setTrustStoreAlgorithm);
-			map.from(ssl::isValidateServerCertificate)
-				.to((validate) -> factory.setSkipServerCertificateValidation(!validate));
-			map.from(ssl::getVerifyHostname).to(factory::setEnableHostnameVerification);
+		SslBundle sslBundle = this.connectionDetails.getSslBundle();
+		if (sslBundle != null) {
+			applySslBundle(factory, sslBundle);
+		}
+		else {
+			RabbitProperties.Ssl ssl = this.rabbitProperties.getSsl();
+			if (ssl.determineEnabled()) {
+				factory.setUseSSL(true);
+				map.from(ssl::getAlgorithm).whenNonNull().to(factory::setSslAlgorithm);
+				map.from(ssl::getKeyStoreType).to(factory::setKeyStoreType);
+				map.from(ssl::getKeyStore).to(factory::setKeyStore);
+				map.from(ssl::getKeyStorePassword).to(factory::setKeyStorePassphrase);
+				map.from(ssl::getKeyStoreAlgorithm).whenNonNull().to(factory::setKeyStoreAlgorithm);
+				map.from(ssl::getTrustStoreType).to(factory::setTrustStoreType);
+				map.from(ssl::getTrustStore).to(factory::setTrustStore);
+				map.from(ssl::getTrustStorePassword).to(factory::setTrustStorePassphrase);
+				map.from(ssl::getTrustStoreAlgorithm).whenNonNull().to(factory::setTrustStoreAlgorithm);
+				map.from(ssl::isValidateServerCertificate)
+					.to((validate) -> factory.setSkipServerCertificateValidation(!validate));
+				map.from(ssl::isVerifyHostname).to(factory::setEnableHostnameVerification);
+			}
 		}
 		map.from(this.rabbitProperties::getConnectionTimeout)
 			.whenNonNull()
@@ -133,6 +158,17 @@ public class RabbitConnectionFactoryBeanConfigurer {
 			.to(factory::setChannelRpcTimeout);
 		map.from(this.credentialsProvider).whenNonNull().to(factory::setCredentialsProvider);
 		map.from(this.credentialsRefreshService).whenNonNull().to(factory::setCredentialsRefreshService);
+		map.from(this.rabbitProperties.getMaxInboundMessageBodySize())
+			.whenNonNull()
+			.asInt(DataSize::toBytes)
+			.to(factory::setMaxInboundMessageBodySize);
+	}
+
+	private static void applySslBundle(RabbitConnectionFactoryBean factory, SslBundle bundle) {
+		factory.setUseSSL(true);
+		if (factory instanceof SslBundleRabbitConnectionFactoryBean sslFactory) {
+			sslFactory.setSslBundle(bundle);
+		}
 	}
 
 }

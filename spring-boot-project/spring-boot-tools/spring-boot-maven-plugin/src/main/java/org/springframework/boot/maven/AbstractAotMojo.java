@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2023 the original author or authors.
+ * Copyright 2012-2025 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -46,13 +46,12 @@ import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.shared.artifact.filter.collection.ArtifactsFilter;
 import org.apache.maven.toolchain.ToolchainManager;
 
-import org.springframework.boot.maven.CommandLineBuilder.ClasspathBuilder;
-
 /**
  * Abstract base class for AOT processing MOJOs.
  *
  * @author Phillip Webb
  * @author Scott Frederick
+ * @author Omar YAYA
  * @since 3.0.0
  */
 public abstract class AbstractAotMojo extends AbstractDependencyFilterMojo {
@@ -94,6 +93,15 @@ public abstract class AbstractAotMojo extends AbstractDependencyFilterMojo {
 	 */
 	@Parameter(property = "spring-boot.aot.compilerArguments")
 	private String compilerArguments;
+
+	/**
+	 * Return Maven execution session.
+	 * @return session
+	 * @since 3.0.10
+	 */
+	protected final MavenSession getSession() {
+		return this.session;
+	}
 
 	@Override
 	public void execute() throws MojoExecutionException, MojoFailureException {
@@ -137,26 +145,31 @@ public abstract class AbstractAotMojo extends AbstractDependencyFilterMojo {
 		JavaCompiler compiler = ToolProvider.getSystemJavaCompiler();
 		try (StandardJavaFileManager fileManager = compiler.getStandardFileManager(null, null, null)) {
 			JavaCompilerPluginConfiguration compilerConfiguration = new JavaCompilerPluginConfiguration(this.project);
-			List<String> options = new ArrayList<>();
-			options.add("-cp");
-			options.add(ClasspathBuilder.build(Arrays.asList(classPath)));
-			options.add("-d");
-			options.add(outputDirectory.toPath().toAbsolutePath().toString());
+			List<String> args = new ArrayList<>();
+			args.addAll(ClassPath.of(classPath).args(false));
+			args.add("-d");
+			args.add(outputDirectory.toPath().toAbsolutePath().toString());
 			String releaseVersion = compilerConfiguration.getReleaseVersion();
 			if (releaseVersion != null) {
-				options.add("--release");
-				options.add(releaseVersion);
+				args.add("--release");
+				args.add(releaseVersion);
 			}
 			else {
-				options.add("--source");
-				options.add(compilerConfiguration.getSourceMajorVersion());
-				options.add("--target");
-				options.add(compilerConfiguration.getTargetMajorVersion());
+				String source = compilerConfiguration.getSourceMajorVersion();
+				if (source != null) {
+					args.add("--source");
+					args.add(source);
+				}
+				String target = compilerConfiguration.getTargetMajorVersion();
+				if (target != null) {
+					args.add("--target");
+					args.add(target);
+				}
 			}
-			options.addAll(new RunArguments(this.compilerArguments).getArgs());
+			args.addAll(new RunArguments(this.compilerArguments).getArgs());
 			Iterable<? extends JavaFileObject> compilationUnits = fileManager.getJavaFileObjectsFromPaths(sourceFiles);
 			Errors errors = new Errors();
-			CompilationTask task = compiler.getTask(null, fileManager, errors, options, null, compilationUnits);
+			CompilationTask task = compiler.getTask(null, fileManager, errors, args, null, compilationUnits);
 			boolean result = task.call();
 			if (!result || errors.hasReportedErrors()) {
 				throw new IllegalStateException("Unable to compile generated source" + errors);
@@ -211,7 +224,7 @@ public abstract class AbstractAotMojo extends AbstractDependencyFilterMojo {
 		}
 
 		boolean hasReportedErrors() {
-			return this.message.length() > 0;
+			return !this.message.isEmpty();
 		}
 
 		@Override

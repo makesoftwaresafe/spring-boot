@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2023 the original author or authors.
+ * Copyright 2012-2025 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,16 +16,25 @@
 
 package org.springframework.boot.ssl;
 
+import java.security.KeyStore;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.UnrecoverableKeyException;
+
 import javax.net.ssl.KeyManager;
+import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;
+import javax.net.ssl.TrustManagerFactory;
 
+import org.springframework.core.style.ToStringCreator;
 import org.springframework.util.StringUtils;
 
 /**
  * A bundle of trust material that can be used to establish an SSL connection.
  *
  * @author Scott Frederick
+ * @author Moritz Halbritter
  * @since 3.1.0
  */
 public interface SslBundle {
@@ -160,7 +169,53 @@ public interface SslBundle {
 				return managersToUse;
 			}
 
+			@Override
+			public String toString() {
+				ToStringCreator creator = new ToStringCreator(this);
+				creator.append("key", getKey());
+				creator.append("options", getOptions());
+				creator.append("protocol", getProtocol());
+				creator.append("stores", getStores());
+				return creator.toString();
+			}
+
 		};
+	}
+
+	/**
+	 * Factory method to create a new {@link SslBundle} which uses the system defaults.
+	 * @return a new {@link SslBundle} instance
+	 * @since 3.5.0
+	 */
+	static SslBundle systemDefault() {
+		try {
+			KeyManagerFactory keyManagerFactory = KeyManagerFactory
+				.getInstance(KeyManagerFactory.getDefaultAlgorithm());
+			keyManagerFactory.init(null, null);
+			TrustManagerFactory trustManagerFactory = TrustManagerFactory
+				.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+			trustManagerFactory.init((KeyStore) null);
+			SSLContext sslContext = SSLContext.getDefault();
+			return of(null, null, null, null, new SslManagerBundle() {
+				@Override
+				public KeyManagerFactory getKeyManagerFactory() {
+					return keyManagerFactory;
+				}
+
+				@Override
+				public TrustManagerFactory getTrustManagerFactory() {
+					return trustManagerFactory;
+				}
+
+				@Override
+				public SSLContext createSslContext(String protocol) {
+					return sslContext;
+				}
+			});
+		}
+		catch (NoSuchAlgorithmException | KeyStoreException | UnrecoverableKeyException ex) {
+			throw new IllegalStateException("Could not initialize system default SslBundle: " + ex.getMessage(), ex);
+		}
 	}
 
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2023 the original author or authors.
+ * Copyright 2012-2025 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -33,11 +33,12 @@ import org.springframework.amqp.support.converter.MessageConverter;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBooleanProperty;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnSingleCandidate;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.boot.ssl.SslBundles;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
@@ -69,6 +70,7 @@ import org.springframework.core.io.ResourceLoader;
  * @author Chris Bono
  * @author Moritz Halbritter
  * @author Andy Wilkinson
+ * @author Scott Frederick
  * @since 1.0.0
  */
 @AutoConfiguration
@@ -82,15 +84,14 @@ public class RabbitAutoConfiguration {
 
 		private final RabbitProperties properties;
 
-		protected RabbitConnectionFactoryCreator(RabbitProperties properties,
-				ObjectProvider<RabbitConnectionDetails> connectionDetails) {
+		protected RabbitConnectionFactoryCreator(RabbitProperties properties) {
 			this.properties = properties;
 		}
 
 		@Bean
-		@ConditionalOnMissingBean(RabbitConnectionDetails.class)
-		RabbitConnectionDetails rabbitConnectionDetails() {
-			return new PropertiesRabbitConnectionDetails(this.properties);
+		@ConditionalOnMissingBean
+		RabbitConnectionDetails rabbitConnectionDetails(ObjectProvider<SslBundles> sslBundles) {
+			return new PropertiesRabbitConnectionDetails(this.properties, sslBundles.getIfAvailable());
 		}
 
 		@Bean
@@ -121,17 +122,14 @@ public class RabbitAutoConfiguration {
 				RabbitConnectionFactoryBeanConfigurer rabbitConnectionFactoryBeanConfigurer,
 				CachingConnectionFactoryConfigurer rabbitCachingConnectionFactoryConfigurer,
 				ObjectProvider<ConnectionFactoryCustomizer> connectionFactoryCustomizers) throws Exception {
-
-			RabbitConnectionFactoryBean connectionFactoryBean = new RabbitConnectionFactoryBean();
+			RabbitConnectionFactoryBean connectionFactoryBean = new SslBundleRabbitConnectionFactoryBean();
 			rabbitConnectionFactoryBeanConfigurer.configure(connectionFactoryBean);
 			connectionFactoryBean.afterPropertiesSet();
 			com.rabbitmq.client.ConnectionFactory connectionFactory = connectionFactoryBean.getObject();
 			connectionFactoryCustomizers.orderedStream()
 				.forEach((customizer) -> customizer.customize(connectionFactory));
-
 			CachingConnectionFactory factory = new CachingConnectionFactory(connectionFactory);
 			rabbitCachingConnectionFactoryConfigurer.configure(factory);
-
 			return factory;
 		}
 
@@ -165,7 +163,7 @@ public class RabbitAutoConfiguration {
 
 		@Bean
 		@ConditionalOnSingleCandidate(ConnectionFactory.class)
-		@ConditionalOnProperty(prefix = "spring.rabbitmq", name = "dynamic", matchIfMissing = true)
+		@ConditionalOnBooleanProperty(name = "spring.rabbitmq.dynamic", matchIfMissing = true)
 		@ConditionalOnMissingBean
 		public AmqpAdmin amqpAdmin(ConnectionFactory connectionFactory) {
 			return new RabbitAdmin(connectionFactory);
@@ -177,7 +175,7 @@ public class RabbitAutoConfiguration {
 	@ConditionalOnClass(RabbitMessagingTemplate.class)
 	@ConditionalOnMissingBean(RabbitMessagingTemplate.class)
 	@Import(RabbitTemplateConfiguration.class)
-	protected static class MessagingTemplateConfiguration {
+	protected static class RabbitMessagingTemplateConfiguration {
 
 		@Bean
 		@ConditionalOnSingleCandidate(RabbitTemplate.class)

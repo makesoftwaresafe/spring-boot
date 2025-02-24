@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2023 the original author or authors.
+ * Copyright 2012-2025 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -80,7 +80,7 @@ class MongoAutoConfigurationTests {
 		this.contextRunner.withPropertyValues("spring.data.mongodb.ssl.enabled=true").run((context) -> {
 			SslSettings sslSettings = getSettings(context).getSslSettings();
 			assertThat(sslSettings.isEnabled()).isTrue();
-			assertThat(sslSettings.getContext()).isNull();
+			assertThat(sslSettings.getContext()).isNotNull();
 		});
 	}
 
@@ -151,6 +151,18 @@ class MongoAutoConfigurationTests {
 				assertThat(credential.getUserName()).isEqualTo("user");
 				assertThat(credential.getPassword()).isEqualTo("secret".toCharArray());
 				assertThat(credential.getSource()).isEqualTo("authdb");
+			});
+	}
+
+	@Test
+	void configuresCredentialsFromPropertiesWithSpecialCharacters() {
+		this.contextRunner
+			.withPropertyValues("spring.data.mongodb.username=us:er", "spring.data.mongodb.password=sec@ret")
+			.run((context) -> {
+				MongoCredential credential = getSettings(context).getCredential();
+				assertThat(credential.getUserName()).isEqualTo("us:er");
+				assertThat(credential.getPassword()).isEqualTo("sec@ret".toCharArray());
+				assertThat(credential.getSource()).isEqualTo("test");
 			});
 	}
 
@@ -227,6 +239,12 @@ class MongoAutoConfigurationTests {
 		})
 			.run((context) -> assertThat(context).hasSingleBean(MongoConnectionDetails.class)
 				.doesNotHaveBean(PropertiesMongoConnectionDetails.class));
+	}
+
+	@Test
+	void uuidRepresentationDefaultsAreAligned() {
+		this.contextRunner.run((context) -> assertThat(getSettings(context).getUuidRepresentation())
+			.isEqualTo(new MongoProperties().getUuidRepresentation()));
 	}
 
 	private MongoClientSettings getSettings(AssertableApplicationContext context) {
