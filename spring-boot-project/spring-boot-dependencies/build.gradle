@@ -2217,7 +2217,7 @@ bom {
 			releaseNotes("https://github.com/spring-projects/spring-batch/releases/tag/v{version}")
 		}
 	}
-	library("Spring Data Bom", "2025.0.0-SNAPSHOT") {
+	library("Spring Data Bom", "2025.0.0-RC1") {
 		prohibit {
 			versionRange "[2025.1.0-M1,)"
 			because "it exceeds our baseline"
@@ -2390,7 +2390,7 @@ bom {
 			releaseNotes("https://github.com/spring-projects/spring-retry/releases/tag/v{version}")
 		}
 	}
-	library("Spring Security", "6.5.0-SNAPSHOT") {
+	library("Spring Security", "6.5.0-RC1") {
 		considerSnapshots()
 		group("org.springframework.security") {
 			bom("spring-security-bom")
@@ -2428,7 +2428,7 @@ bom {
 			releaseNotes("https://github.com/spring-projects/spring-session/releases/tag/{version}")
 		}
 	}
-	library("Spring WS", "4.1.0-SNAPSHOT") {
+	library("Spring WS", "4.1.0-RC1") {
 		considerSnapshots()
 		group("org.springframework.ws") {
 			bom("spring-ws-bom")
