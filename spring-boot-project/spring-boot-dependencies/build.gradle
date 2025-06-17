@@ -2199,7 +2199,7 @@ bom {
 			releaseNotes("https://github.com/spring-projects/spring-amqp/releases/tag/v{version}")
 		}
 	}
-	library("Spring Authorization Server", "1.5.1-SNAPSHOT") {
+	library("Spring Authorization Server", "1.5.1") {
 		considerSnapshots()
 		group("org.springframework.security") {
 			modules = [
@@ -2323,7 +2323,7 @@ bom {
 			releaseNotes("https://github.com/spring-projects/spring-integration/releases/tag/v{version}")
 		}
 	}
-	library("Spring Kafka", "3.3.7-SNAPSHOT") {
+	library("Spring Kafka", "3.3.7") {
 		considerSnapshots()
 		group("org.springframework.kafka") {
 			modules = [
@@ -2419,7 +2419,7 @@ bom {
 			releaseNotes("https://github.com/spring-projects/spring-security/releases/tag/{version}")
 		}
 	}
-	library("Spring Session", "3.5.1-SNAPSHOT") {
+	library("Spring Session", "3.5.1") {
 		considerSnapshots()
 		prohibit {
 			startsWith(["Apple-", "Bean-", "Corn-", "Dragonfruit-"])
