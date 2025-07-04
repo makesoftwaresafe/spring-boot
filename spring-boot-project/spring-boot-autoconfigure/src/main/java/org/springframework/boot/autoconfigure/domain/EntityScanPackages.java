@@ -43,7 +43,7 @@ import org.springframework.util.StringUtils;
  * (e.g. by JPA auto-configuration).
  *
  * @author Phillip Webb
- * @since 1.4.0
+ * @since 4.0.0
  * @see EntityScan
  * @see EntityScanner
  */

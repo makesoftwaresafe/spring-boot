@@ -33,10 +33,6 @@ import org.springframework.util.ClassUtils;
 /**
  * {@link org.springframework.format.support.FormattingConversionService} dedicated to web
  * applications for formatting and converting values to/from the web.
- * <p>
- * This service replaces the default implementations provided by
- * {@link org.springframework.web.servlet.config.annotation.EnableWebMvc @EnableWebMvc}
- * and {@link org.springframework.web.reactive.config.EnableWebFlux @EnableWebFlux}.
  *
  * @author Brian Clozel
  * @since 2.0.0

@@ -21,13 +21,13 @@ import java.util.Base64;
 import org.junit.jupiter.api.Test;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.actuate.autoconfigure.security.reactive.EndpointRequest;
 import org.springframework.boot.actuate.web.mappings.MappingsEndpoint;
-import org.springframework.boot.autoconfigure.security.reactive.PathRequest;
+import org.springframework.boot.security.autoconfigure.actuate.reactive.EndpointRequest;
+import org.springframework.boot.security.autoconfigure.reactive.PathRequest;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
-import org.springframework.boot.test.web.server.LocalManagementPort;
-import org.springframework.boot.test.web.server.LocalServerPort;
+import org.springframework.boot.web.server.test.LocalManagementPort;
+import org.springframework.boot.web.server.test.LocalServerPort;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.web.server.ServerHttpSecurity;

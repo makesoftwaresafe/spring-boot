@@ -31,8 +31,8 @@ import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.images.builder.ImageFromDockerfile;
 import org.testcontainers.images.builder.dockerfile.DockerfileBuilder;
 
-import org.springframework.boot.test.web.client.TestRestTemplate;
-import org.springframework.boot.web.client.RestTemplateBuilder;
+import org.springframework.boot.restclient.RestTemplateBuilder;
+import org.springframework.boot.web.server.test.client.TestRestTemplate;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
@@ -104,6 +104,7 @@ abstract class AbstractDeploymentTests {
 			try {
 				Awaitility.await().atMost(Duration.ofMinutes(10)).until(() -> {
 					try {
+						System.out.println(this.container.getLogs());
 						consumer.accept(rest);
 						return true;
 					}

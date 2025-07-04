@@ -15,6 +15,6 @@
  */
 
 /**
- * Auto-configuration for the cache abstraction.
+ * Auto-configuration base classes for Caching support.
  */
 package org.springframework.boot.autoconfigure.cache;

@@ -21,9 +21,6 @@ plugins {
 description = "Starter for using Spring Security's OAuth2 resource server features"
 
 dependencies {
-	api(project(":spring-boot-project:spring-boot-starters:spring-boot-starter"))
-	api("org.springframework.security:spring-security-config")
-	api("org.springframework.security:spring-security-core")
-	api("org.springframework.security:spring-security-oauth2-resource-server")
-	api("org.springframework.security:spring-security-oauth2-jose")
+	api(project(":spring-boot-project:spring-boot-starters:spring-boot-starter-security"))
+	api(project(":spring-boot-project:spring-boot-security-oauth2-resource-server"))
 }

@@ -37,7 +37,7 @@ import org.springframework.web.WebApplicationInitializer;
  * For configuration examples see {@link WebApplicationInitializer}.
  *
  * @author Phillip Webb
- * @since 1.4.0
+ * @since 4.0.0
  * @see WebApplicationInitializer
  */
 @FunctionalInterface

@@ -36,7 +36,7 @@ import org.springframework.util.StringUtils;
  * specified packages.
  *
  * @author Phillip Webb
- * @since 1.4.0
+ * @since 4.0.0
  */
 public class EntityScanner {
 
